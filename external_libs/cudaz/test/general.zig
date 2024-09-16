@@ -68,7 +68,7 @@ test "ptx_sin_file" {
     defer device.free();
 
     //Load module from ptx
-    const module = try CuDevice.loadPtx(.{ .raw_path = "cuda/sin.ptx" });
+    const module = try CuDevice.loadPtx(.{ .raw_path = "test/cuda/sin.ptx" });
     const func = try module.getFunc("sin_kernel");
 
     //init variables
@@ -92,7 +92,7 @@ test "ptx_sin_file" {
 }
 
 test "compile_ptx" {
-    const file = try std.fs.cwd().openFile("cuda/sin.cu", .{});
+    const file = try std.fs.cwd().openFile("test/cuda/sin.cu", .{});
     const ptx_data = try CuCompile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
     std.testing.allocator.free(ptx_data);
 }

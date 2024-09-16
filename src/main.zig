@@ -1,12 +1,14 @@
 const std = @import("std");
-const Ctype = @cImport(@cInclude("../c/tuple.h"));
 const Cuda = @import("cudaz");
 const CuDevice = Cuda.Device;
 const CuCompile = Cuda.Compile;
 const CuLaunchConfig = Cuda.LaunchConfig;
+const CudazIncludes = @import("cudaz_includes");
 
 // Cuda Kernel
-const increment_kernel = @embedFile("offset.cu");
+const Ctype = @cImport(CudazIncludes.tuple_h);
+const tuple_h = CudazIncludes.tuple_h;
+const offset_kernel = CudazIncludes.offset_cu;
 
 pub fn main() !void {
     // Initialize allocator
@@ -36,7 +38,7 @@ pub fn main() !void {
     const dest_cu_slice = try device.alloc(f32, 10);
 
     // Compile and load the Kernel
-    const ptx = try CuCompile.cudaText(increment_kernel, .{}, allocator);
+    const ptx = try CuCompile.cudaText(offset_kernel, .{}, allocator);
     defer allocator.free(ptx);
 
     const module = try CuDevice.loadPtxText(ptx);
@@ -44,7 +46,10 @@ pub fn main() !void {
     std.debug.print("Compiled Cuda Kernel that generates offsets between a tuple pair", .{});
 
     // Run the kernel on the data
-    try function.run(.{ &src_cu_slice.device_ptr, &dest_cu_slice.device_ptr }, CuLaunchConfig{ .block_dim = .{ 10, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 });
+    try function.run(
+        .{ &src_cu_slice.device_ptr, &dest_cu_slice.device_ptr },
+        CuLaunchConfig{ .block_dim = .{ 10, 1, 1 }, .grid_dim = .{ 1, 1, 1 }, .shared_mem_bytes = 0 },
+    );
     std.debug.print("Ran the Kernel against the array in GPU\n", .{});
 
     // Retrieve incremented data back to the system
