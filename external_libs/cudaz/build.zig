@@ -163,7 +163,13 @@ pub fn generateCudazIncludes(target: *std.Build.Step.Compile, source_dir: std.Bu
                 std.mem.replaceScalar(u8, filepath_sanitized.items, '/', '_');
                 std.mem.replaceScalar(u8, filepath_sanitized.items, '\\', '_');
 
-                try files_list.writer().print("pub const {s} = @embedFile(\"{s}\");\n", .{
+                try files_list.writer().print(
+                    \\pub const {s}_path = "{s}";
+                    \\pub const {s} = @embedFile("{s}");
+                    \\
+                , .{
+                    filepath_sanitized.items,
+                    filepath,
                     filepath_sanitized.items,
                     filepath,
                 });
@@ -175,5 +181,8 @@ pub fn generateCudazIncludes(target: *std.Build.Step.Compile, source_dir: std.Bu
     const wf = b.addWriteFiles();
     _ = wf.addCopyDirectory(source_dir, "", .{});
     const f = wf.add("cudaz_includes.zig", files_list.items);
+
+    target.addIncludePath(source_dir);
+
     return f;
 }

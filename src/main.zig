@@ -6,7 +6,7 @@ const CuLaunchConfig = Cuda.LaunchConfig;
 const CudazIncludes = @import("cudaz_includes");
 
 // Cuda Kernel
-const Ctype = @cImport(CudazIncludes.tuple_h);
+const Ctype = @cImport(@cInclude(CudazIncludes.tuple_h_path));
 const tuple_h = CudazIncludes.tuple_h;
 const offset_kernel = CudazIncludes.offset_cu;
 
@@ -38,7 +38,7 @@ pub fn main() !void {
     const dest_cu_slice = try device.alloc(f32, 10);
 
     // Compile and load the Kernel
-    const ptx = try CuCompile.cudaText(offset_kernel, .{}, allocator);
+    const ptx = try CuCompile.cudaText(tuple_h ++ "\n" ++ offset_kernel, .{}, allocator);
     defer allocator.free(ptx);
 
     const module = try CuDevice.loadPtxText(ptx);
