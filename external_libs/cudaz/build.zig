@@ -137,33 +137,34 @@ pub fn build(b: *std.Build) !void {
 }
 
 // intended to be used as a helper function by the dependent of the cudaz module
-pub fn generateCudazIncludes(dependent_build: *std.Build, source_dir: std.Build.LazyPath) !std.Build.LazyPath {
-    var dir = try std.fs.openDirAbsolute(source_dir.getPath(dependent_build), .{ .iterate = true });
+pub fn generateCudazIncludes(target: *std.Build.Step.Compile, source_dir: std.Build.LazyPath) !std.Build.LazyPath {
+    const b = target.step.owner;
+
+    var dir = try std.fs.openDirAbsolute(source_dir.getPath(b), .{ .iterate = true });
     defer dir.close();
 
-    var walker = try dir.walk(dependent_build.allocator);
+    var walker = try dir.walk(b.allocator);
     defer walker.deinit();
 
-    var files_list = std.ArrayList(u8).init(dependent_build.allocator);
+    var files_list = std.ArrayList(u8).init(b.allocator);
     defer files_list.deinit();
 
-    var tmp_buffer = std.ArrayList(u8).init(dependent_build.allocator);
-    defer tmp_buffer.deinit();
+    var filepath_sanitized = std.ArrayList(u8).init(b.allocator);
+    defer filepath_sanitized.deinit();
 
     while (try walker.next()) |entry| {
         switch (entry.kind) {
             .file => {
                 const filepath = entry.path;
 
-                try tmp_buffer.resize(filepath.len);
-                std.mem.copyForwards(u8, tmp_buffer.items, filepath);
-                std.mem.replaceScalar(u8, tmp_buffer.items, '.', '_');
-                std.mem.replaceScalar(u8, tmp_buffer.items, '/', '_');
-                std.mem.replaceScalar(u8, tmp_buffer.items, '\\', '_');
+                try filepath_sanitized.resize(filepath.len);
+                std.mem.copyForwards(u8, filepath_sanitized.items, filepath);
+                std.mem.replaceScalar(u8, filepath_sanitized.items, '.', '_');
+                std.mem.replaceScalar(u8, filepath_sanitized.items, '/', '_');
+                std.mem.replaceScalar(u8, filepath_sanitized.items, '\\', '_');
 
-                try files_list.writer().print("pub const {s} = @embedFile(\"{s}/{s}\");\n", .{
-                    tmp_buffer.items,
-                    source_dir.getDisplayName(),
+                try files_list.writer().print("pub const {s} = @embedFile(\"{s}\");\n", .{
+                    filepath_sanitized.items,
                     filepath,
                 });
             },
@@ -171,7 +172,8 @@ pub fn generateCudazIncludes(dependent_build: *std.Build, source_dir: std.Build.
         }
     }
 
-    const wf = dependent_build.addWriteFiles();
+    const wf = b.addWriteFiles();
+    _ = wf.addCopyDirectory(source_dir, "", .{});
     const f = wf.add("cudaz_includes.zig", files_list.items);
     return f;
 }

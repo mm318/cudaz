@@ -6,7 +6,6 @@ pub fn build(b: *std.Build) !void {
         "cudaz",
         .{ .CUDA_PATH = @as([]const u8, "/usr/local/cuda-12.6") },
     );
-    const cudaz_includes = try @import("cudaz").generateCudazIncludes(b, b.path("src/kernels/"));
 
     // exe points to main.zig that uses cudaz
     const exe = b.addExecutable(.{
@@ -14,11 +13,11 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/main.zig"),
         .target = b.host,
     });
-    exe.addIncludePath(b.path("./")); // TODO: remove
 
     // Fetch and add the module from cudaz dependency
     const cudaz_module = cudaz_dep.module("cudaz");
     exe.root_module.addImport("cudaz", cudaz_module);
+    const cudaz_includes = try @import("cudaz").generateCudazIncludes(exe, b.path("src/kernels/"));
     exe.root_module.addAnonymousImport("cudaz_includes", .{ .root_source_file = cudaz_includes });
 
     // Dynamically link to libc, cuda, nvrtc
