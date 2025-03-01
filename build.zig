@@ -47,9 +47,6 @@ fn use_nvcc(
     const target_filename = b.fmt("{s}.{s}", .{ std.fs.path.stem(source_path), "o" });
     compileCuda(b, nvcc_path, b.path(source_path), target_filename, exe);
 
-    const cudaz_dep = b.dependency("cudaz", .{ .CUDA_PATH = cuda_path });
-    const cudaz_module = cudaz_dep.module("cudaz");
-    exe.root_module.addImport("cudaz", cudaz_module);
     exe.addIncludePath(.{ .cwd_relative = b.fmt("{s}/include", .{cuda_path}) });
     exe.addIncludePath(b.path(KERNELS_PATH));
 
