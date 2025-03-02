@@ -1,12 +1,17 @@
 const std = @import("std");
 
 const c = @cImport({
-    @cDefine("struct___device_builtin__", ""); // fix https://github.com/Narsil/zig_cuda_bug/blob/main/src/main.zig#L3
+    // workaround compilation error based on https://github.com/Narsil/zig_cuda_bug/blob/main/src/main.zig#L3
+    @cDefine("struct___device_builtin__", "__device_builtin__");
     @cInclude("cuda_runtime.h");
     @cInclude("tuple.h");
+
+    // workaround for "ld.lld: cannot open .: Is a directory"
+    @cInclude("offset.h");
 });
 
-extern "C" fn launchOffset(block_dim: c.dim3, grid_dim: c.dim3, in: [*c]c.tuple, out: [*c]f32) void;
+// cannot use this declaration because "ld.lld: cannot open .: Is a directory"
+// extern "C" fn launchOffset(block_dim: c.dim3, grid_dim: c.dim3, in: [*c]c.tuple, out: [*c]f32) void;
 
 fn cudaMalloc(dataType: type, num: usize) ![]dataType {
     var devPtr: ?*anyopaque = undefined;
@@ -68,7 +73,7 @@ pub fn main() !void {
     // Run the kernel on the data
     const block_dim = c.dim3{ .x = 10, .y = 1, .z = 1 };
     const grid_dim = c.dim3{ .x = 1, .y = 1, .z = 1 };
-    launchOffset(block_dim, grid_dim, src_cu_slice.ptr, dest_cu_slice.ptr);
+    c.launchOffset(block_dim, grid_dim, src_cu_slice.ptr, dest_cu_slice.ptr);
 
     // Retrieve incremented data back to the system
     var incremented_arr = try std.ArrayList(f32).initCapacity(allocator, src_array.items.len);

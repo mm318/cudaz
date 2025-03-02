@@ -14,13 +14,23 @@ git clone https://github.com/mm318/cudaz.git
 ```
 
 ### Build
-All commands should be run from the newly downloaded `cudaz` directory.
+
+All commands should be run from the newly cloned `cudaz` directory.
 
 To build:
 ```bash
-zig build run           # to run the nvrtc example
-zig build run_static    # to run the nvcc example
+zig build                           # for debug build
+zig build -Doptimize=ReleaseSafe    # for release build
 ```
 
-(Currently, `zig` seems to have a bug where it passes `--no-as-needed .` to the linker resulting in a
-`ld.lld: cannot open .: Is a directory` error.)
+### To Run Examples
+
+There are build targets added to conveniently run the examples.
+Similarly, all commands should be run from the cloned `cudaz` directory.
+
+```bash
+zig build -Doptimize=ReleaseSafe run           # to run the nvrtc example
+zig build -Doptimize=ReleaseSafe run_static    # to run the nvcc example
+```
+
+Tested on Ubuntu 20.04 using zig 0.14.0-dev.1911+3bf89f55c (2024.10.0-mach).

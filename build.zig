@@ -101,7 +101,7 @@ pub fn build(b: *std.Build) !void {
     const nvcc_example = use_nvcc(b, target, optimize, cuda_path);
     const nvrtc_example = use_nvrtc(b, target, optimize, cuda_path);
 
-    b.installArtifact(nvcc_example);    // ld.lld: cannot open .: Is a directory
+    b.installArtifact(nvcc_example);
     b.installArtifact(nvrtc_example);
 
     // Run binary
