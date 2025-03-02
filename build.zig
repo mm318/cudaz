@@ -4,13 +4,15 @@ const GPU_ARCH = "sm_50";
 const KERNELS_PATH = "src/kernels";
 
 fn compileCuda(
-    b: *std.Build,
+    exe_compile_step: *std.Build.Step.Compile,
     nvcc_path: []const u8,
     source_filepath: std.Build.LazyPath,
     target_filename: []const u8,
-    exe_compile_step: *std.Build.Step.Compile,
 ) void {
+    const b = exe_compile_step.step.owner;
+
     const nvcc_args = &.{
+        "-DINCLUDE_LAUNCHER_FOR_ZIG=1",
         "-O3",
         b.fmt("--gpu-architecture={s}", .{GPU_ARCH}),
         "--compiler-options",
@@ -38,14 +40,14 @@ fn use_nvcc(
 
     const exe = b.addExecutable(.{
         .name = "nvcc_example",
-        .root_source_file = .{ .cwd_relative = "src/nvcc_example.zig" },
+        .root_source_file = b.path("src/nvcc_example.zig"),
         .target = target,
         .optimize = optimize,
     });
 
     const source_path = b.pathJoin(&.{ "src", "kernels", "offset.cu" });
     const target_filename = b.fmt("{s}.{s}", .{ std.fs.path.stem(source_path), "o" });
-    compileCuda(b, nvcc_path, b.path(source_path), target_filename, exe);
+    compileCuda(exe, nvcc_path, b.path(source_path), target_filename);
 
     exe.addIncludePath(.{ .cwd_relative = b.fmt("{s}/include", .{cuda_path}) });
     exe.addIncludePath(b.path(KERNELS_PATH));
@@ -99,7 +101,7 @@ pub fn build(b: *std.Build) !void {
     const nvcc_example = use_nvcc(b, target, optimize, cuda_path);
     const nvrtc_example = use_nvrtc(b, target, optimize, cuda_path);
 
-    b.installArtifact(nvcc_example);
+    b.installArtifact(nvcc_example);    // ld.lld: cannot open .: Is a directory
     b.installArtifact(nvrtc_example);
 
     // Run binary

@@ -140,7 +140,8 @@ pub fn build(b: *std.Build) !void {
 pub fn generateCudazIncludes(target: *std.Build.Step.Compile, source_dir: std.Build.LazyPath) !std.Build.LazyPath {
     const b = target.step.owner;
 
-    var dir = try std.fs.openDirAbsolute(source_dir.getPath(b), .{ .iterate = true });
+    const dirpath = source_dir.getPath(b);
+    var dir = try std.fs.openDirAbsolute(dirpath, .{ .iterate = true });
     defer dir.close();
 
     var walker = try dir.walk(b.allocator);
@@ -152,34 +153,51 @@ pub fn generateCudazIncludes(target: *std.Build.Step.Compile, source_dir: std.Bu
     var filepath_sanitized = std.ArrayList(u8).init(b.allocator);
     defer filepath_sanitized.deinit();
 
+    const wf = b.addWriteFiles();
+
     while (try walker.next()) |entry| {
         switch (entry.kind) {
             .file => {
-                const filepath = entry.path;
+                const filename = entry.path;
+                const filepath = b.pathJoin(&.{ dirpath, filename });
 
-                try filepath_sanitized.resize(filepath.len);
-                std.mem.copyForwards(u8, filepath_sanitized.items, filepath);
+                try filepath_sanitized.resize(filename.len);
+                std.mem.copyForwards(u8, filepath_sanitized.items, filename);
                 std.mem.replaceScalar(u8, filepath_sanitized.items, '.', '_');
                 std.mem.replaceScalar(u8, filepath_sanitized.items, '/', '_');
                 std.mem.replaceScalar(u8, filepath_sanitized.items, '\\', '_');
 
-                try files_list.writer().print(
-                    \\pub const {s}_path = "{s}";
-                    \\pub const {s} = @embedFile({s}_path);
-                    \\
-                , .{
-                    filepath_sanitized.items,
-                    filepath,
-                    filepath_sanitized.items,
-                    filepath_sanitized.items,
-                });
+                if (std.mem.eql(u8, std.fs.path.extension(filename), ".cu")) {
+                    const preprocess_cmd = &.{
+                        b.graph.zig_exe,
+                        "cc",
+                        "-x",
+                        "c++",
+                        "-E",
+                        filepath,
+                        "-o",
+                    };
+                    const preprocess_step = b.addSystemCommand(preprocess_cmd);
+                    const preprocessed_filepath = preprocess_step.addOutputFileArg(filename);
+                    wf.step.dependOn(&preprocess_step.step);
+
+                    _ = wf.addCopyFile(preprocessed_filepath, filename);
+                    try files_list.writer().print(
+                        "pub const {s} = @embedFile(\"{s}\");\n",
+                        .{ filepath_sanitized.items, filename },
+                    );
+                } else {
+                    _ = wf.addCopyFile(.{ .cwd_relative = filepath }, filename);
+                    try files_list.writer().print(
+                        "pub const {s}_path = \"{s}\";\n",
+                        .{ filepath_sanitized.items, filename },
+                    );
+                }
             },
             else => {},
         }
     }
 
-    const wf = b.addWriteFiles();
-    _ = wf.addCopyDirectory(source_dir, "", .{});
     const f = wf.add("cudaz_includes.zig", files_list.items);
 
     target.addIncludePath(source_dir);
