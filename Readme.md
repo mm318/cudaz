@@ -1,5 +1,7 @@
 # Examples of Using CUDA with Zig
 
+![build](https://github.com/mm318/cudaz/actions/workflows/test.yml/badge.svg)
+
 There are two approaches presented in the examples.
 
 One example uses `nvcc` to compile the kernel into an object file and statically linked into the final executable.

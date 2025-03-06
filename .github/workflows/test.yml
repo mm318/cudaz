@@ -1,0 +1,40 @@
+name: Test Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: '0 8 * * *' # run at UTC 8 am
+
+jobs:
+  build-all-targets:
+    strategy:
+      matrix:
+        include:
+          - target: 'native'
+            optimizaton: 'Debug'
+          - target: 'native'
+            optimizaton: 'ReleaseSafe'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: 0.14.0
+
+      - uses: Jimver/cuda-toolkit@v0.2.21
+        with:
+          method: network
+          sub-packages: '["nvcc", "nvrtc-dev"]'
+
+      - name: Install libcuda.so
+        run: sudo apt-get -y install libnvidia-compute-570
+
+      - name: Build
+        run: |
+          zig build -Doptimize=${{ matrix.optimizaton }}
