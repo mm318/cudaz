@@ -40,9 +40,11 @@ fn use_nvcc(
 
     const exe = b.addExecutable(.{
         .name = "nvcc_example",
-        .root_source_file = b.path("src/nvcc_example.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/nvcc_example.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     const source_path = b.pathJoin(&.{ "src", "kernels", "offset.cu" });
@@ -71,9 +73,11 @@ fn use_nvrtc(
     // exe points to main.zig that uses cudaz
     const exe = b.addExecutable(.{
         .name = "nvrtc_example",
-        .root_source_file = b.path("src/nvrtc_example.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/nvrtc_example.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
 
     // Point to cudaz dependency

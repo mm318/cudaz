@@ -5,13 +5,9 @@ const c = @cImport({
     @cDefine("struct___device_builtin__", "__device_builtin__");
     @cInclude("cuda_runtime.h");
     @cInclude("tuple.h");
-
-    // workaround for "ld.lld: cannot open .: Is a directory"
-    @cInclude("offset.h");
 });
 
-// cannot use this declaration because "ld.lld: cannot open .: Is a directory"
-// extern "C" fn launchOffset(block_dim: c.dim3, grid_dim: c.dim3, in: [*c]c.tuple, out: [*c]f32) void;
+extern "C" fn launchOffset(block_dim: c.dim3, grid_dim: c.dim3, in: [*c]c.tuple, out: [*c]f32) void;
 
 fn cudaMalloc(dataType: type, num: usize) ![]dataType {
     var devPtr: ?*anyopaque = undefined;
@@ -37,7 +33,7 @@ fn cudaMemcpy(dataType: type, dst_slice: *[]dataType, src_slice: []const dataTyp
     dst_slice.len = num;
 }
 
-fn cudaFree(dataType: type, slice: *[]const dataType) !void {
+fn cudaFree(dataType: type, slice: *[]dataType) !void {
     const result = c.cudaFree(@constCast(@ptrCast(slice.ptr)));
     if (result != c.cudaSuccess) {
         return error.CudaError;
@@ -73,7 +69,7 @@ pub fn main() !void {
     // Run the kernel on the data
     const block_dim = c.dim3{ .x = 10, .y = 1, .z = 1 };
     const grid_dim = c.dim3{ .x = 1, .y = 1, .z = 1 };
-    c.launchOffset(block_dim, grid_dim, src_cu_slice.ptr, dest_cu_slice.ptr);
+    launchOffset(block_dim, grid_dim, src_cu_slice.ptr, dest_cu_slice.ptr);
 
     // Retrieve incremented data back to the system
     var incremented_arr = try std.ArrayList(f32).initCapacity(allocator, src_array.items.len);

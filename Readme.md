@@ -33,4 +33,4 @@ zig build -Doptimize=ReleaseSafe run           # to run the nvrtc example
 zig build -Doptimize=ReleaseSafe run_static    # to run the nvcc example
 ```
 
-Tested on Ubuntu 20.04 using zig 0.14.0-dev.1911+3bf89f55c (2024.10.0-mach).
+Tested on Ubuntu 20.04 using zig 0.14.0.
