@@ -9,7 +9,7 @@ This library helps to interact with NVIDIA GPUs from zig. Provides high level in
 - Compiling (.cu) and loading kernels (.ptx) both from file and text.
 - Running kernels with grid/blocks/threads configuration.
 
-Check [example](./example) folder for code samples.
+Check [example](./example/) folder for code samples.
 
 >Scroll below to go through an example of incrementing each value in an array parallely using GPU.
 
@@ -95,7 +95,7 @@ pub fn main() !void {
     defer incremented_arr.deinit();
 }
 ```
-For running above code system refer to the example project: [increment](./example/increment)
+For running above code system refer to the example project under [example/](./example/)
 
 ### Develop
 Clone this repo and run tests:
@@ -106,8 +106,7 @@ zig build test --summary all
 ```
 
 ## Examples:
-- [Incrementing array in GPU](example/increment/)
-- [Sending Custom Types to GPU](example/custom_type/)
+- [Sending Custom Types to GPU](./example/)
 
 ## Customization
 - It is intelligent to identify and link to installed cuda libraries. If needed, provide cuda installation path manually by mentioning build parameter `zig build -DCUDA_PATH=<cuda_folder>`.

@@ -100,7 +100,7 @@ pub fn build(b: *std.Build) !void {
         defer b.allocator.free(test_file_contents);
 
         // Hack for identifying if the current root is cudaz project, if not don't register tests.
-        if (std.mem.indexOf(u8, test_file_contents, ".name = .cudaz") == null) {
+        if (std.mem.indexOf(u8, test_file_contents, ".name = .cudaz,") == null) {
             break :test_blk;
         }
 
@@ -144,4 +144,73 @@ pub fn build(b: *std.Build) !void {
     // Register clean command i.e, zig build clean to cleanup any artifacts and cache
     const clean_cmd = b.step("clean", "Cleans the cache folders");
     clean_cmd.dependOn(&clean_step.step);
+}
+
+// intended to be used as a helper function by the dependent of the cudaz module
+pub fn generateCudazIncludes(target: *std.Build.Step.Compile, source_dir: std.Build.LazyPath) !std.Build.LazyPath {
+    const b = target.step.owner;
+
+    const dirpath = source_dir.getPath(b);
+    var dir = try std.fs.openDirAbsolute(dirpath, .{ .iterate = true });
+    defer dir.close();
+
+    var walker = try dir.walk(b.allocator);
+    defer walker.deinit();
+
+    var files_list = std.ArrayList(u8).init(b.allocator);
+    defer files_list.deinit();
+
+    var filepath_sanitized = std.ArrayList(u8).init(b.allocator);
+    defer filepath_sanitized.deinit();
+
+    const wf = b.addWriteFiles();
+
+    while (try walker.next()) |entry| {
+        switch (entry.kind) {
+            .file => {
+                const filename = entry.path;
+                const filepath = b.pathJoin(&.{ dirpath, filename });
+
+                try filepath_sanitized.resize(filename.len);
+                std.mem.copyForwards(u8, filepath_sanitized.items, filename);
+                std.mem.replaceScalar(u8, filepath_sanitized.items, '.', '_');
+                std.mem.replaceScalar(u8, filepath_sanitized.items, '/', '_');
+                std.mem.replaceScalar(u8, filepath_sanitized.items, '\\', '_');
+
+                if (std.mem.eql(u8, std.fs.path.extension(filename), ".cu")) {
+                    const preprocess_cmd = &.{
+                        b.graph.zig_exe,
+                        "cc",
+                        "-x",
+                        "c++",
+                        "-E",
+                        filepath,
+                        "-o",
+                    };
+                    const preprocess_step = b.addSystemCommand(preprocess_cmd);
+                    const preprocessed_filepath = preprocess_step.addOutputFileArg(filename);
+                    wf.step.dependOn(&preprocess_step.step);
+
+                    _ = wf.addCopyFile(preprocessed_filepath, filename);
+                    try files_list.writer().print(
+                        "pub const {s} = @embedFile(\"{s}\");\n",
+                        .{ filepath_sanitized.items, filename },
+                    );
+                } else {
+                    _ = wf.addCopyFile(.{ .cwd_relative = filepath }, filename);
+                    try files_list.writer().print(
+                        "pub const {s}_path = \"{s}\";\n",
+                        .{ filepath_sanitized.items, filename },
+                    );
+                }
+            },
+            else => {},
+        }
+    }
+
+    const f = wf.add("cudaz_includes.zig", files_list.items);
+
+    target.addIncludePath(source_dir);
+
+    return f;
 }
