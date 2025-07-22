@@ -3,7 +3,6 @@ const std = @import("std");
 const utils = @import("test/utils.zig");
 
 fn getCudaPath(path: ?[]const u8, allocator: std.mem.Allocator) ![]const u8 {
-
     // Return of cuda_parent folder confirms presence of include directory.
     return incldue_path: {
         if (path) |parent| {
@@ -107,11 +106,11 @@ pub fn build(b: *std.Build) !void {
 
         const test_step = b.step("test", "Run library tests");
         const test_dir = try std.fs.cwd().openDir("test", .{ .iterate = true });
-        var dir_iterator = try test_dir.walk(b.allocator);
+        var dir_iterator = test_dir.iterate();
         while (try dir_iterator.next()) |item| {
             if (item.kind == .file) {
-                const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.path });
-                const sub_test = b.addTest(.{ .name = item.path, .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
+                const test_path = try std.fmt.allocPrint(b.allocator, "{s}/{s}", .{ "test", item.name });
+                const sub_test = b.addTest(.{ .name = item.name, .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
                 // Add Module
                 sub_test.root_module.addImport("cudaz", cudaz_module);
 
@@ -119,13 +118,12 @@ pub fn build(b: *std.Build) !void {
                 sub_test.linkLibC();
                 sub_test.linkSystemLibrary("cuda");
                 sub_test.linkSystemLibrary("nvrtc");
-                sub_test.linkSystemLibrary("curand");
                 sub_test.linkSystemLibrary("cudart");
 
                 // Creates a run step for test binary
                 const run_sub_tests = b.addRunArtifact(sub_test);
 
-                const test_name = try std.fmt.allocPrint(b.allocator, "test-{s}", .{item.path[0 .. item.path.len - 4]});
+                const test_name = try std.fmt.allocPrint(b.allocator, "test-{s}", .{item.name[0 .. item.name.len - 4]});
                 // Create a test_step name
                 const ind_test_step = b.step(test_name, "Individual Test");
                 ind_test_step.dependOn(&run_sub_tests.step);

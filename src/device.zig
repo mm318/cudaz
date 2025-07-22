@@ -70,16 +70,17 @@ pub fn allocZerosR(self: Device, dtype: DType, length: usize) CudaError.Error!Cu
 pub fn memsetZeros(comptime data_type: type, cuda_slice: CudaSlice(data_type)) CudaError.Error!void {
     try Error.fromCudaErrorCode(cuda.cuMemsetD8_v2(cuda_slice.device_ptr, 0, cuda_slice.len * @sizeOf(data_type)));
 }
-
 pub fn memsetZerosR(dtype: DType, cuda_slice: CudaSliceR) CudaError.Error!void {
     try Error.fromCudaErrorCode(cuda.cuMemsetD8_v2(cuda_slice.device_ptr, 0, cuda_slice.len * dtype.size()));
 }
+
 pub fn free(ptr: cuda.CUdeviceptr) !void {
     try Error.fromCudaErrorCode(cuda.cuMemFree_v2(ptr));
 }
 pub fn deinit(self: *const Device) void {
     Error.fromCudaErrorCode(cuda.cuDevicePrimaryCtxRelease(self.device)) catch |err| @panic(@errorName(err));
 }
+
 pub fn htodCopyInto(comptime T: type, src: []const T, destination: CudaSlice(T)) CudaError.Error!void {
     std.debug.assert(src.len == destination.len);
     try Error.fromCudaErrorCode(cuda.cuMemcpyHtoD_v2(destination.device_ptr, @ptrCast(src), @sizeOf(T) * src.len));
@@ -89,6 +90,7 @@ pub fn htodCopy(self: Device, comptime T: type, src: []const T) CudaError.Error!
     try Device.htodCopyInto(T, src, slice);
     return slice;
 }
+
 pub fn dtohCopyInto(comptime T: type, src: CudaSlice(T), destination: []T) CudaError.Error!void {
     std.debug.assert(src.len == destination.len);
     try Error.fromCudaErrorCode(cuda.cuMemcpyDtoH_v2(@ptrCast(destination), src.device_ptr, @sizeOf(T) * src.len));
@@ -98,6 +100,7 @@ pub fn dtohCopy(comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice
     try dtohCopyInto(T, slice, host_buf);
     return host_buf;
 }
+
 pub fn syncReclaim(comptime T: type, allocator: std.mem.Allocator, slice: CudaSlice(T)) !std.ArrayList(T) {
     var h_Array = try std.ArrayList(T).initCapacity(allocator, slice.len);
     try Error.fromCudaErrorCode(cuda.cuMemcpyDtoH_v2(@ptrCast(h_Array.items), slice.device_ptr, @sizeOf(T) * slice.len));

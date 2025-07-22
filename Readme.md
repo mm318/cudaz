@@ -1,28 +1,23 @@
 ![AI Generated](cuda_zig.jpeg)
+
 # Cuda library for Zig
 This library helps to interact with NVIDIA GPUs from zig. Provides high level interface to communicate with GPU. It can detect cuda installation and link to a project's binary on Linux/MacOS. Check [Customization](https://github.com/akhildevelops/cudaz/tree/main#Customization) to give cuda manual path.
-
 
 ## The library provides below features:
 - Memory Allocation in GPU with defined size.
 - Copying data from host to gpu and viceversa.
 - Compiling (.cu) and loading kernels (.ptx) both from file and text.
 - Running kernels with grid/blocks/threads configuration.
-- [Generate random numbers](test/rng.zig)
 
-Check [test](./test) folder for code samples.
+Check [example](./example) folder for code samples.
 
 >Scroll below to go through an example of incrementing each value in an array parallely using GPU.
 
 ### Install
 Download and save the library path in `build.zig.zon` file by running
 
-#### zig 0.14.0
-`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.2.0.tar.gz`
-
-#### zig 0.13.0
-`zig fetch --save https://github.com/akhildevelops/cudaz/archive/0.1.0.tar.gz`
-
+#### zig 0.14.x
+`zig fetch --save https://github.com/mm318/cudaz/archive/archive/refs/heads/main.tar.gz`
 
 Add cudaz module in your project's `build.zig` file that will link to your project's binary.
 ```zig
@@ -50,11 +45,9 @@ pub fn build(b: *std.Build) !void {
     const run_step = b.addRunArtifact(exe);
     run.dependOn(&run_step.step);
 }
-
-
 ```
 
-### Increment Array using GPU
+#### Increment Array using GPU
 ```zig
 // src/main.zig
 
@@ -103,6 +96,14 @@ pub fn main() !void {
 }
 ```
 For running above code system refer to the example project: [increment](./example/increment)
+
+### Develop
+Clone this repo and run tests:
+```
+git clone https://github.com/mm318/cudaz.git
+cd cudaz
+zig build test --summary all
+```
 
 ## Examples:
 - [Incrementing array in GPU](example/increment/)

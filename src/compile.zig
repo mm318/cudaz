@@ -44,6 +44,7 @@ const Options = struct {
         return arr;
     }
 };
+
 pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.Allocator) CompileError![:0]const u8 {
     var program: nvrtc.nvrtcProgram = undefined;
     try Error.fromNvrtcErrorCode(nvrtc.nvrtcCreateProgram(&program, cuda_text.ptr, null, 0, null, null));
@@ -51,6 +52,7 @@ pub fn cudaText(cuda_text: [:0]const u8, options: ?Options, allocator: std.mem.A
     const ptx_data = try getPtx(program, allocator);
     return ptx_data;
 }
+
 pub fn cudaFile(cuda_path: std.fs.File, options: ?Options, allocator: std.mem.Allocator) ![:0]const u8 {
     var data = std.ArrayList(u8).init(allocator);
     try cuda_path.reader().readAllArrayList(&data, std.math.maxInt(usize));

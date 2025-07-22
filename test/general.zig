@@ -13,7 +13,7 @@ test "Setup" {
 test "Allocate" {
     const device = try CuDevice.default();
     defer device.deinit();
-    const slice = try device.alloc(f32, 1024 * 1024 * 1024);
+    const slice = try device.alloc(f32, 1024 * 1024);
     defer slice.free();
 }
 
@@ -26,7 +26,7 @@ test "host_to_device" {
 
 test "device_to_host" {
     const device: CuDevice = try CuDevice.default();
-    defer device.free();
+    defer device.deinit();
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -81,13 +81,12 @@ test "inc_file" {
 // Got segmentation fault because n was declared a  comptime_int construct and after compiling there will be no n, therefore cuda won't able to fetch the value n.
 // Even if n is declared as const param there's seg fault, unless it's declared as var
 test "ptx_sin_file" {
-
     // CuDevice Initialization
     var device = try CuDevice.default();
     defer device.deinit();
 
     //Load module from ptx
-    const module = try CuDevice.loadPtx(.{ .raw_path = "cuda/sin.ptx" });
+    const module = try CuDevice.loadPtx(.{ .raw_path = "test/cuda/sin.ptx" });
     const func = try module.getFunc("sin_kernel");
 
     //init variables
@@ -111,7 +110,7 @@ test "ptx_sin_file" {
 }
 
 test "compile_ptx" {
-    const file = try std.fs.cwd().openFile("cuda/sin.cu", .{});
+    const file = try std.fs.cwd().openFile("test/cuda/sin.cu", .{});
     const ptx_data = try CuCompile.cudaFile(file, .{ .use_fast_math = true }, std.testing.allocator);
     std.testing.allocator.free(ptx_data);
 }
